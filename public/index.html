@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Call App</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Video Call Application</h1>
+
+        <div class="room-controls">
+            <div class="input-group">
+                <input type="text" id="roomInput" placeholder="Enter room ID" maxlength="20">
+                <button id="joinBtn">Join Room</button>
+            </div>
+            <p id="roomStatus" class="status-text"></p>
+        </div>
+
+        <div class="video-container" id="videoContainer" style="display: none;">
+            <div class="video-wrapper">
+                <video id="localVideo" autoplay muted playsinline></video>
+                <div class="video-label">You</div>
+            </div>
+
+            <div class="video-wrapper">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <div class="video-label">Remote User</div>
+                <div id="connectionStatus" class="connection-status">Connecting...</div>
+            </div>
+        </div>
+
+        <div class="controls" id="controls" style="display: none;">
+            <button id="muteBtn" class="control-btn">
+                <span class="btn-icon">🎤</span>
+                <span class="btn-text">Mute</span>
+            </button>
+
+            <button id="videoBtn" class="control-btn">
+                <span class="btn-icon">📹</span>
+                <span class="btn-text">Video</span>
+            </button>
+
+            <button id="screenShareBtn" class="control-btn">
+                <span class="btn-icon">🖥️</span>
+                <span class="btn-text">Share Screen</span>
+            </button>
+
+            <button id="hangupBtn" class="control-btn hangup">
+                <span class="btn-icon">📞</span>
+                <span class="btn-text">Hang Up</span>
+            </button>
+        </div>
+
+        <div class="info-panel">
+            <h3>How to use:</h3>
+            <ol>
+                <li>Enter a room ID (any text)</li>
+                <li>Click "Join Room"</li>
+                <li>Share the room ID with someone else</li>
+                <li>When they join, the video call will start automatically</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
