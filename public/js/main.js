@@ -16,6 +16,14 @@ class MultiUserVideoCall {
         this.videoBtn = document.getElementById('videoBtn');
         this.screenShareBtn = document.getElementById('screenShareBtn');
         this.hangupBtn = document.getElementById('hangupBtn');
+        this.themeToggle = document.getElementById('themeToggle');
+        this.fullscreenBtn = document.getElementById('fullscreenBtn');
+        this.floatingMenu = document.getElementById('floatingMenu');
+        this.floatingThemeToggle = document.getElementById('floatingThemeToggle');
+        this.floatingFullscreenBtn = document.getElementById('floatingFullscreenBtn');
+        this.header = document.querySelector('.header');
+        this.roomControls = document.querySelector('.room-controls');
+        this.infoPanel = document.querySelector('.info-panel');
 
         this.localAudioStatus = document.getElementById('localAudioStatus');
         this.localVideoStatus = document.getElementById('localVideoStatus');
@@ -28,6 +36,10 @@ class MultiUserVideoCall {
         this.isAudioMuted = false;
         this.isVideoMuted = false;
         this.isScreenSharing = false;
+        this.isFullscreen = false;
+        this.isDarkMode = false;
+        this.hideControlsTimeout = null;
+        this.isInCall = false;
 
         this.configuration = {
             iceServers: [
@@ -52,6 +64,9 @@ class MultiUserVideoCall {
     init() {
         this.setupEventListeners();
         this.setupSocketEvents();
+        this.initializeTheme();
+        this.setupFullscreenEvents();
+        this.generateRandomUsername();
     }
 
     setupEventListeners() {
@@ -67,6 +82,16 @@ class MultiUserVideoCall {
         this.videoBtn.addEventListener('click', () => this.toggleVideo());
         this.screenShareBtn.addEventListener('click', () => this.toggleScreenShare());
         this.hangupBtn.addEventListener('click', () => this.hangUp());
+        this.themeToggle.addEventListener('click', () => this.toggleTheme());
+        this.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+        this.floatingThemeToggle.addEventListener('click', () => this.toggleTheme());
+        this.floatingFullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+
+        // Window resize event for responsive adjustments
+        window.addEventListener('resize', () => this.handleWindowResize());
+
+        // Setup mouse move detection for floating controls
+        this.setupFloatingControls();
     }
 
     setupSocketEvents() {
@@ -139,9 +164,14 @@ class MultiUserVideoCall {
             this.videoContainer.style.display = 'grid';
             this.controls.style.display = 'flex';
             this.userCount.style.display = 'block';
+            this.fullscreenBtn.style.display = 'block';
             this.joinBtn.disabled = true;
             this.roomInput.disabled = true;
             this.usernameInput.disabled = true;
+
+            // Switch to floating UI mode
+            this.isInCall = true;
+            this.enableFloatingMode();
 
         } catch (error) {
             console.error('Error joining room:', error);
@@ -156,6 +186,19 @@ class MultiUserVideoCall {
             audio: true
         });
         this.localVideo.srcObject = this.localStream;
+
+        // Set up aspect ratio detection for local video
+        this.setupVideoAspectRatio(this.localVideo);
+    }
+
+    setupVideoAspectRatio(videoElement) {
+        videoElement.addEventListener('loadedmetadata', () => {
+            const aspectRatio = videoElement.videoWidth / videoElement.videoHeight;
+            const wrapper = videoElement.closest('.video-wrapper');
+            if (wrapper) {
+                wrapper.style.setProperty('--video-aspect-ratio', aspectRatio);
+            }
+        });
     }
 
     async handleUserJoined(user) {
@@ -302,8 +345,17 @@ class MultiUserVideoCall {
         videoWrapper.appendChild(connectionStatus);
         videoWrapper.appendChild(controlsOverlay);
 
+        // Set up aspect ratio detection for remote video
+        this.setupVideoAspectRatio(video);
+
         this.remoteVideos.appendChild(videoWrapper);
         this.updateRemoteVideosLayout();
+
+        // Trigger size calculation after DOM update
+        setTimeout(() => {
+            const userCount = this.remoteVideos.children.length;
+            this.calculateOptimalVideoSizes(userCount);
+        }, 50);
     }
 
     updateRemoteVideo(userId, stream) {
@@ -356,6 +408,19 @@ class MultiUserVideoCall {
     updateRemoteVideosLayout() {
         const userCount = this.remoteVideos.children.length;
         this.remoteVideos.setAttribute('data-users', userCount.toString());
+        this.calculateOptimalVideoSizes(userCount);
+    }
+
+    calculateOptimalVideoSizes(userCount) {
+        if (userCount === 0) return;
+
+        const remoteVideoContainer = this.remoteVideos;
+
+        // Update grid layout attributes for proper responsive behavior
+        remoteVideoContainer.setAttribute('data-users', userCount.toString());
+
+        // Videos now use CSS aspect-ratio: 16/9, so no height calculations needed
+        // The aspect ratio ensures consistent proportions across all screen sizes
     }
 
     updateRemoteUserAudioStatus(userId, muted) {
@@ -462,6 +527,9 @@ class MultiUserVideoCall {
                 this.screenShareBtn.classList.add('active');
                 this.screenShareBtn.querySelector('.btn-text').textContent = 'Stop Share';
 
+                // Update aspect ratio for screen share
+                this.setupVideoAspectRatio(this.localVideo);
+
                 videoTrack.onended = () => {
                     this.stopScreenShare();
                 };
@@ -493,6 +561,9 @@ class MultiUserVideoCall {
             this.isScreenSharing = false;
             this.screenShareBtn.classList.remove('active');
             this.screenShareBtn.querySelector('.btn-text').textContent = 'Share Screen';
+
+            // Update aspect ratio back to camera
+            this.setupVideoAspectRatio(this.localVideo);
         } catch (error) {
             console.error('Error stopping screen share:', error);
         }
@@ -519,11 +590,21 @@ class MultiUserVideoCall {
         this.videoContainer.style.display = 'none';
         this.controls.style.display = 'none';
         this.userCount.style.display = 'none';
+        this.fullscreenBtn.style.display = 'none';
         this.joinBtn.disabled = false;
         this.roomInput.disabled = false;
         this.usernameInput.disabled = false;
         this.roomInput.value = '';
         this.usernameInput.value = '';
+
+        // Disable floating mode
+        this.isInCall = false;
+        this.disableFloatingMode();
+
+        // Exit fullscreen if active
+        if (this.isFullscreen) {
+            this.exitFullscreen();
+        }
 
         this.roomStatus.textContent = '';
 
@@ -545,6 +626,295 @@ class MultiUserVideoCall {
         this.socket.disconnect();
         this.socket.connect();
         this.setupSocketEvents();
+    }
+
+    // Theme Management
+    initializeTheme() {
+        // Check for saved theme preference or default to light mode
+        const savedTheme = localStorage.getItem('videoCallTheme') || 'light';
+        this.isDarkMode = savedTheme === 'dark';
+        this.applyTheme();
+    }
+
+    toggleTheme() {
+        this.isDarkMode = !this.isDarkMode;
+        this.applyTheme();
+        localStorage.setItem('videoCallTheme', this.isDarkMode ? 'dark' : 'light');
+    }
+
+    applyTheme() {
+        const body = document.body;
+        const themeIcon = this.themeToggle.querySelector('.theme-icon');
+        const floatingThemeIcon = this.floatingThemeToggle.querySelector('.theme-icon');
+
+        if (this.isDarkMode) {
+            body.classList.add('dark');
+            themeIcon.textContent = '☀️';
+            floatingThemeIcon.textContent = '☀️';
+            this.themeToggle.title = 'Switch to Light Mode';
+            this.floatingThemeToggle.title = 'Switch to Light Mode';
+        } else {
+            body.classList.remove('dark');
+            themeIcon.textContent = '🌙';
+            floatingThemeIcon.textContent = '🌙';
+            this.themeToggle.title = 'Switch to Dark Mode';
+            this.floatingThemeToggle.title = 'Switch to Dark Mode';
+        }
+    }
+
+    // Fullscreen Management
+    setupFullscreenEvents() {
+        // Listen for fullscreen change events
+        document.addEventListener('fullscreenchange', () => this.handleFullscreenChange());
+        document.addEventListener('webkitfullscreenchange', () => this.handleFullscreenChange());
+        document.addEventListener('mozfullscreenchange', () => this.handleFullscreenChange());
+        document.addEventListener('MSFullscreenChange', () => this.handleFullscreenChange());
+
+        // Listen for escape key to exit fullscreen
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isFullscreen) {
+                this.exitFullscreen();
+            }
+        });
+    }
+
+    toggleFullscreen() {
+        if (this.isFullscreen) {
+            this.exitFullscreen();
+        } else {
+            this.enterFullscreen();
+        }
+    }
+
+    enterFullscreen() {
+        const element = document.documentElement;
+
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+            element.mozRequestFullScreen();
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        }
+
+        this.isFullscreen = true;
+        document.body.classList.add('fullscreen');
+
+        const fullscreenIcon = this.fullscreenBtn.querySelector('.fullscreen-icon');
+        fullscreenIcon.textContent = '⛶';
+        this.fullscreenBtn.title = 'Exit Fullscreen';
+    }
+
+    exitFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+
+        this.isFullscreen = false;
+        document.body.classList.remove('fullscreen');
+
+        const fullscreenIcon = this.fullscreenBtn.querySelector('.fullscreen-icon');
+        fullscreenIcon.textContent = '⛶';
+        this.fullscreenBtn.title = 'Enter Fullscreen';
+    }
+
+    handleFullscreenChange() {
+        const isCurrentlyFullscreen = !!(
+            document.fullscreenElement ||
+            document.webkitFullscreenElement ||
+            document.mozFullScreenElement ||
+            document.msFullscreenElement
+        );
+
+        if (!isCurrentlyFullscreen && this.isFullscreen) {
+            // User exited fullscreen using browser controls or ESC key
+            this.isFullscreen = false;
+            document.body.classList.remove('fullscreen');
+
+            const fullscreenIcon = this.fullscreenBtn.querySelector('.fullscreen-icon');
+            fullscreenIcon.textContent = '⛶';
+            this.fullscreenBtn.title = 'Enter Fullscreen';
+        }
+    }
+
+    // Enhanced responsive handling
+    handleWindowResize() {
+        // Update video grid layout based on window size
+        this.updateRemoteVideosLayout();
+
+        // Recalculate video sizes for new viewport
+        const userCount = this.remoteVideos.children.length;
+        if (userCount > 0) {
+            // Delay to allow layout to settle
+            setTimeout(() => {
+                this.calculateOptimalVideoSizes(userCount);
+            }, 100);
+        }
+
+        // Adjust fullscreen layout if needed
+        if (this.isFullscreen) {
+            this.adjustFullscreenLayout();
+        }
+    }
+
+    adjustFullscreenLayout() {
+        const isMobile = window.innerWidth <= 768;
+        const controls = this.controls;
+
+        if (isMobile) {
+            controls.style.bottom = '10px';
+            controls.style.padding = '10px 15px';
+        } else {
+            controls.style.bottom = '20px';
+            controls.style.padding = '15px';
+        }
+    }
+
+    // Floating Controls System
+    setupFloatingControls() {
+        // Mouse move detection for video container
+        this.videoContainer.addEventListener('mousemove', () => {
+            if (this.isInCall) {
+                this.showFloatingControls();
+                this.resetHideTimer();
+            }
+        });
+
+        // Mouse leave detection for video container
+        this.videoContainer.addEventListener('mouseleave', () => {
+            if (this.isInCall) {
+                this.hideFloatingControls();
+            }
+        });
+
+        // Keep controls visible when hovering over them
+        this.controls.addEventListener('mouseenter', () => {
+            if (this.isInCall) {
+                this.clearHideTimer();
+            }
+        });
+
+        this.controls.addEventListener('mouseleave', () => {
+            if (this.isInCall) {
+                this.resetHideTimer();
+            }
+        });
+
+        this.floatingMenu.addEventListener('mouseenter', () => {
+            if (this.isInCall) {
+                this.clearHideTimer();
+            }
+        });
+
+        this.floatingMenu.addEventListener('mouseleave', () => {
+            if (this.isInCall) {
+                this.resetHideTimer();
+            }
+        });
+    }
+
+    // Random Username Generator
+    generateRandomUsername() {
+        const adjectives = [
+            'Happy', 'Clever', 'Bright', 'Swift', 'Bold', 'Calm', 'Creative', 'Dynamic',
+            'Eager', 'Friendly', 'Gentle', 'Honest', 'Joyful', 'Kind', 'Lively', 'Mighty',
+            'Noble', 'Polite', 'Quick', 'Radiant', 'Smart', 'Talented', 'Unique', 'Vibrant',
+            'Wise', 'Zealous', 'Brilliant', 'Cheerful', 'Determined', 'Energetic'
+        ];
+
+        const nouns = [
+            'Panda', 'Tiger', 'Eagle', 'Dolphin', 'Lion', 'Fox', 'Wolf', 'Bear',
+            'Owl', 'Hawk', 'Shark', 'Whale', 'Leopard', 'Falcon', 'Raven', 'Lynx',
+            'Otter', 'Seal', 'Deer', 'Moose', 'Elk', 'Bison', 'Jaguar', 'Cheetah',
+            'Penguin', 'Flamingo', 'Parrot', 'Toucan', 'Peacock', 'Swan'
+        ];
+
+        const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+        const randomNumber = Math.floor(Math.random() * 999) + 1;
+
+        const randomUsername = `${randomAdjective}${randomNoun}${randomNumber}`;
+        this.usernameInput.value = randomUsername;
+    }
+
+    enableFloatingMode() {
+        // Hide header
+        this.header.classList.add('hidden');
+
+        // Hide room controls and info panel
+        this.roomControls.classList.add('hidden');
+        this.infoPanel.classList.add('hidden');
+
+        // Convert controls to floating
+        this.controls.classList.add('floating');
+
+        // Convert user count to floating
+        this.userCount.classList.add('floating');
+
+        // Show floating menu
+        this.floatingMenu.classList.add('visible');
+
+        // Initial hide of controls
+        setTimeout(() => {
+            this.hideFloatingControls();
+        }, 3000); // Hide after 3 seconds
+    }
+
+    disableFloatingMode() {
+        // Show header
+        this.header.classList.remove('hidden');
+
+        // Show room controls and info panel
+        this.roomControls.classList.remove('hidden');
+        this.infoPanel.classList.remove('hidden');
+
+        // Remove floating controls
+        this.controls.classList.remove('floating', 'visible');
+
+        // Remove floating user count
+        this.userCount.classList.remove('floating');
+
+        // Hide floating menu
+        this.floatingMenu.classList.remove('visible');
+
+        // Clear any timers
+        this.clearHideTimer();
+    }
+
+    showFloatingControls() {
+        if (this.isInCall) {
+            this.controls.classList.add('visible');
+            this.floatingMenu.classList.add('visible');
+        }
+    }
+
+    hideFloatingControls() {
+        if (this.isInCall) {
+            this.controls.classList.remove('visible');
+            this.floatingMenu.classList.remove('visible');
+        }
+    }
+
+    resetHideTimer() {
+        this.clearHideTimer();
+        this.hideControlsTimeout = setTimeout(() => {
+            this.hideFloatingControls();
+        }, 3000); // Hide after 3 seconds of inactivity
+    }
+
+    clearHideTimer() {
+        if (this.hideControlsTimeout) {
+            clearTimeout(this.hideControlsTimeout);
+            this.hideControlsTimeout = null;
+        }
     }
 }
 

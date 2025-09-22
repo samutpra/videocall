@@ -11,9 +11,13 @@ A WebRTC-based peer-to-peer video calling application built with modern web tech
 - 🖥️ **Screen Sharing**: Share your screen with all participants
 - 👤 **User Names**: Display custom names for each participant
 - 📊 **User Count**: Real-time display of active participants
-- 📱 **Responsive Design**: Adaptive grid layout for desktop and mobile devices
+- 🌙 **Dark/Light Mode**: Toggle between dark and light themes with persistent preference
+- ⛶ **Fullscreen Mode**: Immersive fullscreen video calling experience
+- 📱 **Responsive Design**: Adaptive grid layout optimized for mobile, tablet, and desktop
+- 📐 **Smart Layouts**: Dynamic video grid that adapts to screen size and participant count
 - 🔒 **Secure**: End-to-end encrypted communication using WebRTC
 - 🌐 **Cross-Platform**: Works in all modern web browsers
+- ♿ **Accessibility**: Support for reduced motion and high contrast preferences
 
 ## Technology Stack
 
@@ -72,6 +76,8 @@ A WebRTC-based peer-to-peer video calling application built with modern web tech
 - **📹 Video**: Toggle your camera on/off (with visual status indicators)
 - **🖥️ Share Screen**: Share your screen with all participants
 - **📞 Hang Up**: End the call and return to the main screen
+- **🌙 Theme Toggle**: Switch between dark and light modes
+- **⛶ Fullscreen**: Enter/exit fullscreen mode for immersive experience
 - **👤 User Indicators**: See mute/video status for all participants
 
 ## Project Structure
@@ -112,6 +118,50 @@ User C ←─┘              └→ User D
 ```
 
 **Note**: In a mesh topology, each user connects directly to every other user. This works well for small groups (2-6 users) but may require SFU (Selective Forwarding Unit) architecture for larger groups.
+
+## Responsive Design
+
+The application features comprehensive responsive design optimized for different devices and screen sizes:
+
+### Device Support
+
+#### 📱 **Mobile Phones (320px - 480px)**
+- Single column video layout
+- Touch-optimized controls
+- Optimized button sizes for finger navigation
+- Landscape mode support
+- iOS safe area support
+
+#### 📟 **Tablets (481px - 1023px)**
+- **Portrait (481px - 767px)**: Single column layout with larger videos
+- **Landscape (768px - 1023px)**: Two-column grid for remote videos
+- Enhanced touch targets
+- Adaptive control spacing
+
+#### 💻 **Desktop (1024px+)**
+- **Standard (1024px - 1439px)**: Optimized grid layouts up to 3 columns
+- **Large Desktop (1440px+)**: Enhanced spacing and larger video windows
+- Hover effects and enhanced interactions
+- Multi-column layouts for group calls
+
+### Responsive Features
+
+#### **Adaptive Video Grids**
+- 1 user: Full width single video
+- 2 users: Side-by-side layout
+- 3 users: Three-column grid (desktop) / single column (mobile)
+- 4+ users: Flexible grid adapting to screen size
+
+#### **Smart Layouts**
+- Automatic switching based on device orientation
+- Dynamic adjustment for participant count
+- Optimized aspect ratios for different screen sizes
+
+#### **Accessibility Features**
+- Support for `prefers-reduced-motion`
+- High contrast mode support
+- Keyboard navigation support
+- Screen reader compatible
 
 ## Configuration
 

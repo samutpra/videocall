@@ -4,15 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Call App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@200..800&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Fira+Code:wght@300..700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Video Call Application</h1>
+        <div class="header">
+            <h1>Video Call Application</h1>
+            <div class="header-controls">
+                <button id="themeToggle" class="theme-toggle" title="Toggle Dark/Light Mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button id="fullscreenBtn" class="fullscreen-toggle" title="Toggle Fullscreen" style="display: none;">
+                    <span class="fullscreen-icon">⛶</span>
+                </button>
+            </div>
+        </div>
 
         <div class="room-controls">
             <div class="input-group">
-                <input type="text" id="roomInput" placeholder="Enter room ID" maxlength="20">
+                <input type="text" id="roomInput" placeholder="Enter room ID" maxlength="20" value="Lobby">
                 <input type="text" id="usernameInput" placeholder="Your name (optional)" maxlength="20">
                 <button id="joinBtn">Join Room</button>
             </div>
@@ -23,6 +36,15 @@
         </div>
 
         <div class="video-container" id="videoContainer" style="display: none;">
+            <div class="floating-menu" id="floatingMenu">
+                <button id="floatingThemeToggle" class="theme-toggle" title="Toggle Dark/Light Mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button id="floatingFullscreenBtn" class="fullscreen-toggle" title="Toggle Fullscreen">
+                    <span class="fullscreen-icon">⛶</span>
+                </button>
+            </div>
+
             <div class="video-wrapper local-video">
                 <video id="localVideo" autoplay muted playsinline></video>
                 <div class="video-label">You</div>
