@@ -1,14 +1,17 @@
-# Video Call Application
+# Multi-User Video Call Application
 
-A WebRTC-based peer-to-peer video calling application built with modern web technologies. This application allows face-to-face video communication between two users in real-time without requiring any plugins or external software.
+A WebRTC-based peer-to-peer video calling application built with modern web technologies. This application allows face-to-face video communication between multiple users in real-time without requiring any plugins or external software.
 
 ## Features
 
-- 🎥 **Real-time Video Calling**: High-quality peer-to-peer video communication
-- 🎤 **Audio Control**: Mute/unmute microphone during calls
-- 📹 **Video Control**: Turn camera on/off during calls
-- 🖥️ **Screen Sharing**: Share your screen with the other participant
-- 📱 **Responsive Design**: Works on desktop and mobile devices
+- 🎥 **Multi-User Video Calling**: High-quality peer-to-peer video communication supporting multiple participants
+- 👥 **Group Conferences**: Support for multiple users in the same room simultaneously
+- 🎤 **Audio Control**: Mute/unmute microphone during calls with visual indicators
+- 📹 **Video Control**: Turn camera on/off during calls with status notifications
+- 🖥️ **Screen Sharing**: Share your screen with all participants
+- 👤 **User Names**: Display custom names for each participant
+- 📊 **User Count**: Real-time display of active participants
+- 📱 **Responsive Design**: Adaptive grid layout for desktop and mobile devices
 - 🔒 **Secure**: End-to-end encrypted communication using WebRTC
 - 🌐 **Cross-Platform**: Works in all modern web browsers
 
@@ -57,16 +60,19 @@ A WebRTC-based peer-to-peer video calling application built with modern web tech
 ### Usage
 
 1. **Enter a Room ID**: Type any text as a room identifier (e.g., "meeting123", "family-call")
-2. **Click "Join Room"**: Allow camera and microphone access when prompted
-3. **Share the Room ID**: Send the same room ID to the person you want to call
-4. **Start Video Calling**: When the second person joins, the video call will start automatically
+2. **Enter Your Name** (optional): Add your display name or leave blank for "Anonymous"
+3. **Click "Join Room"**: Allow camera and microphone access when prompted
+4. **Share the Room ID**: Send the same room ID to others you want to invite
+5. **Multi-User Conference**: Multiple people can join the same room for group video calls
+6. **Monitor Participants**: See the user count and connection status for each participant
 
 ### Controls
 
-- **🎤 Mute/Unmute**: Toggle your microphone on/off
-- **📹 Video**: Toggle your camera on/off
-- **🖥️ Share Screen**: Share your screen with the other participant
+- **🎤 Mute/Unmute**: Toggle your microphone on/off (with visual status indicators)
+- **📹 Video**: Toggle your camera on/off (with visual status indicators)
+- **🖥️ Share Screen**: Share your screen with all participants
 - **📞 Hang Up**: End the call and return to the main screen
+- **👤 User Indicators**: See mute/video status for all participants
 
 ## Project Structure
 
@@ -87,22 +93,25 @@ videocall/
 
 ## How It Works
 
-### WebRTC Peer-to-Peer Connection
+### Multi-User WebRTC Architecture
 
-1. **Signaling**: The Socket.io server helps establish initial connection between peers
-2. **Media Capture**: getUserMedia API accesses camera and microphone
-3. **Peer Connection**: RTCPeerConnection creates direct connection between browsers
+1. **Signaling**: The Socket.io server coordinates connections between multiple peers
+2. **Media Capture**: getUserMedia API accesses camera and microphone for each user
+3. **Mesh Network**: Each user maintains direct RTCPeerConnection with every other user
 4. **NAT Traversal**: STUN/TURN servers help overcome network restrictions
-5. **Media Streaming**: Video and audio stream directly between peers
+5. **Media Streaming**: Video and audio stream directly between all peers
 
 ### Network Architecture
 
 ```
-User A Browser ←→ Signaling Server ←→ User B Browser
-     ↓                                      ↓
-     └────── Direct P2P Connection ─────────┘
-           (via STUN/TURN if needed)
+User A ←→ Signaling Server ←→ User B
+  ↓              ↑                ↓
+  └──── Direct P2P Mesh ─────────┘
+         ↑              ↓
+User C ←─┘              └→ User D
 ```
+
+**Note**: In a mesh topology, each user connects directly to every other user. This works well for small groups (2-6 users) but may require SFU (Selective Forwarding Unit) architecture for larger groups.
 
 ## Configuration
 

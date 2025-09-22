@@ -25,23 +25,33 @@ const rooms = new Map();
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  socket.on('join-room', (roomId) => {
+  socket.on('join-room', (roomId, userData) => {
     socket.join(roomId);
 
     if (!rooms.has(roomId)) {
-      rooms.set(roomId, new Set());
+      rooms.set(roomId, new Map());
     }
 
     const room = rooms.get(roomId);
-    room.add(socket.id);
+    room.set(socket.id, {
+      socketId: socket.id,
+      ...userData
+    });
 
-    console.log(`User ${socket.id} joined room ${roomId}`);
+    console.log(`User ${socket.id} joined room ${roomId}. Room now has ${room.size} users.`);
 
-    socket.to(roomId).emit('user-connected', socket.id);
+    // Send list of existing users to the new user
+    const existingUsers = Array.from(room.values()).filter(user => user.socketId !== socket.id);
+    socket.emit('existing-users', existingUsers);
 
-    if (room.size === 2) {
-      io.to(roomId).emit('room-full');
-    }
+    // Notify existing users about the new user
+    socket.to(roomId).emit('user-joined', {
+      socketId: socket.id,
+      ...userData
+    });
+
+    // Send updated user count to all users in the room
+    io.to(roomId).emit('room-users', Array.from(room.values()));
   });
 
   socket.on('offer', (data) => {
@@ -71,14 +81,32 @@ io.on('connection', (socket) => {
     for (const [roomId, room] of rooms.entries()) {
       if (room.has(socket.id)) {
         room.delete(socket.id);
-        socket.to(roomId).emit('user-disconnected', socket.id);
+        socket.to(roomId).emit('user-left', socket.id);
 
-        if (room.size === 0) {
+        // Send updated user count to remaining users
+        if (room.size > 0) {
+          io.to(roomId).emit('room-users', Array.from(room.values()));
+        } else {
           rooms.delete(roomId);
         }
         break;
       }
     }
+  });
+
+  // Handle user mute/unmute events
+  socket.on('user-toggle-audio', (data) => {
+    socket.to(data.roomId).emit('user-toggle-audio', {
+      userId: socket.id,
+      muted: data.muted
+    });
+  });
+
+  socket.on('user-toggle-video', (data) => {
+    socket.to(data.roomId).emit('user-toggle-video', {
+      userId: socket.id,
+      videoOff: data.videoOff
+    });
   });
 });
 

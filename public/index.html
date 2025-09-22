@@ -13,21 +13,26 @@
         <div class="room-controls">
             <div class="input-group">
                 <input type="text" id="roomInput" placeholder="Enter room ID" maxlength="20">
+                <input type="text" id="usernameInput" placeholder="Your name (optional)" maxlength="20">
                 <button id="joinBtn">Join Room</button>
             </div>
             <p id="roomStatus" class="status-text"></p>
+            <div id="userCount" class="user-count" style="display: none;">
+                <span id="userCountText">Users in room: 0</span>
+            </div>
         </div>
 
         <div class="video-container" id="videoContainer" style="display: none;">
-            <div class="video-wrapper">
+            <div class="video-wrapper local-video">
                 <video id="localVideo" autoplay muted playsinline></video>
                 <div class="video-label">You</div>
+                <div class="video-controls-overlay">
+                    <span id="localAudioStatus" class="audio-status"></span>
+                    <span id="localVideoStatus" class="video-status"></span>
+                </div>
             </div>
-
-            <div class="video-wrapper">
-                <video id="remoteVideo" autoplay playsinline></video>
-                <div class="video-label">Remote User</div>
-                <div id="connectionStatus" class="connection-status">Connecting...</div>
+            <div id="remoteVideos" class="remote-videos">
+                <!-- Remote video streams will be dynamically added here -->
             </div>
         </div>
 
@@ -56,10 +61,11 @@
         <div class="info-panel">
             <h3>How to use:</h3>
             <ol>
-                <li>Enter a room ID (any text)</li>
+                <li>Enter a room ID (any text) and optionally your name</li>
                 <li>Click "Join Room"</li>
-                <li>Share the room ID with someone else</li>
-                <li>When they join, the video call will start automatically</li>
+                <li>Share the room ID with others</li>
+                <li>Multiple people can join the same room for group video calls</li>
+                <li>Use controls to mute/unmute, turn video on/off, or share screen</li>
             </ol>
         </div>
     </div>
